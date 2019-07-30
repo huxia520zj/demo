@@ -1,0 +1,24 @@
+package com.eryanet.m85musicsdk.bean;
+
+import java.util.List;
+
+public class TrackBean {
+    boolean isSuccess;
+    List<Track> trackList;
+
+    public boolean isSuccess() {
+        return isSuccess;
+    }
+
+    public void setSuccess(boolean success) {
+        isSuccess = success;
+    }
+
+    public List<Track> getTrackList() {
+        return trackList;
+    }
+
+    public void setTrackList(List<Track> trackList) {
+        this.trackList = trackList;
+    }
+}

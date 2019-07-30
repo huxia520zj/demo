@@ -1,0 +1,58 @@
+package com.eryanet.m85musicsdk.bean;
+
+public class Track {
+    int album_id;
+    int track_id;
+    String track_name;
+    String album_name;
+    String pic_url;
+    String play_url;
+
+    public int getAlbum_id() {
+        return album_id;
+    }
+
+    public void setAlbum_id(int album_id) {
+        this.album_id = album_id;
+    }
+
+    public int getTrack_id() {
+        return track_id;
+    }
+
+    public void setTrack_id(int track_id) {
+        this.track_id = track_id;
+    }
+
+    public String getTrack_name() {
+        return track_name;
+    }
+
+    public void setTrack_name(String track_name) {
+        this.track_name = track_name;
+    }
+
+    public String getAlbum_name() {
+        return album_name;
+    }
+
+    public void setAlbum_name(String album_name) {
+        this.album_name = album_name;
+    }
+
+    public String getPic_url() {
+        return pic_url;
+    }
+
+    public void setPic_url(String pic_url) {
+        this.pic_url = pic_url;
+    }
+
+    public String getPlay_url() {
+        return play_url;
+    }
+
+    public void setPlay_url(String play_url) {
+        this.play_url = play_url;
+    }
+}

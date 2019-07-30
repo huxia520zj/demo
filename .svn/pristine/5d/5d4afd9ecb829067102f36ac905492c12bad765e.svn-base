@@ -1,0 +1,10 @@
+package com.eryanet.m85musicsdk.inter;
+
+/**
+ * Created by zhangjiao on 2018/7/18.
+ *
+ */
+
+public interface MusicPlayerCallBack {
+
+}

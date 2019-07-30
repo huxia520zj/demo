@@ -1,0 +1,201 @@
+package com.eryanet.m85musicsdk.utils;
+
+import android.content.Context;
+import android.util.Log;
+
+import com.eryanet.m85musicsdk.bean.CategoryBean;
+import com.eryanet.m85musicsdk.bean.Category;
+import com.eryanet.m85musicsdk.bean.Recommend;
+import com.eryanet.m85musicsdk.bean.RecommendBean;
+import com.eryanet.m85musicsdk.bean.Tag;
+import com.eryanet.m85musicsdk.constants.CommonConstants;
+import com.eryanet.m85musicsdk.constants.NetWorkUrLConstants;
+import com.eryanet.m85musicsdk.inter.IHttpCallback;
+import com.eryanet.m85musicsdk.inter.IListResponse;
+import com.eryanet.m85musicsdk.tools.RequestNet;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Created by zhangjiao on 2018/7/25.
+ */
+
+public class RequestUtil {
+    private static final String TAG = "zhangjiao";
+    private IListResponse iListResponse;
+    private String string;
+    private Context context;
+    private int[] categoryId = {1, 2, 3, 4, 5};
+    private String[] categoryName = {"主题", "风格", "语种", "心情", "场景"};
+    private String albumName[][] = {{"综艺", "经典", "儿歌", "广场舞", "70后", "80后", "90后", "红歌", "游戏", "动漫", "中国风", "毕业季", "小清新"}
+            , {"流行", "R&B", "嘻哈", "摇滚", "电子", "爵士", "乡村", "蓝调", "民谣", "纯音乐", "古典"}
+            , {"华语", "粤语", "英语", "韩语", "日语"}
+            , {"甜蜜", "治愈", "思念", "期待", "励志", "欢快", "叛逆", "宣泄", "怀旧", "寂寞", "伤感"}
+            , {"清晨", "夜晚", "午休", "学习", "工作", "下午茶", "驾车", "公交", "运动", "散步", "旅行", "夜店"}};
+    private int albumId[][] = {{101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113}
+            , {201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211}
+            , {301, 302, 303, 304, 305}
+            , {401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411}
+            , {501, 502, 503, 504, 505,506, 507, 508, 509, 510, 511, 512}};
+
+    public RequestUtil(Context context) {
+        this.context = context;
+        loginVIN();
+    }
+
+    public void setiListResponse(IListResponse iListResponse) {
+        this.iListResponse = iListResponse;
+    }
+    /**
+     * vin注册
+     */
+    /**
+     * VIN登陆
+     */
+    public void loginVIN() {
+        RequestNet.register(new IHttpCallback() {
+            @Override
+            public void onFailure(int errorCode, String errorMessage) {
+                loginVIN();
+            }
+
+            @Override
+            public void onResponse(String data, String finalUrl) throws IOException {
+                try {
+                    JSONObject object = new JSONObject(data);
+                    CommonConstants.USER_ID = object.getString("userID");
+                    CommonConstants.TOKEN = object.getString("token");
+                    Log.e(TAG,"USER_ID "+CommonConstants.USER_ID);
+                    Log.e(TAG,"TOKEN "+CommonConstants.TOKEN);
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        });
+
+    }
+
+    /**
+     * 刷新token
+     */
+    public void updateToken() {
+        RequestNet.updateToken();
+    }
+    /**
+     * 获取推荐专辑列表
+     */
+    public void requestRecommendList(){
+        String finalUrl = NetWorkUrLConstants.RECOMMENDLIST_URL;
+        RequestNet.baseGetRequest(finalUrl, new IHttpCallback() {
+            RecommendBean recommendBean = new RecommendBean();
+
+            @Override
+            public void onFailure(int errorCode, String errorMessage) {
+                recommendBean.setSuccess(false);
+                iListResponse.responseRecommendList(recommendBean);
+            }
+
+            @Override
+            public void onResponse(String data, String finalUrl) throws IOException {
+                try {
+                    recommendBean.setSuccess(true);
+                    Gson gson = new Gson();
+                    List<Recommend> list = gson.fromJson(data, new TypeToken<List<Recommend>>() {
+                    }.getType());
+//                    for(int i = 0;i<list.size();i++){
+//                        Log.e("zhangzimo",list.get(i).getTitle());
+//                    }
+                    recommendBean.setRecommendList(list);
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    recommendBean.setSuccess(false);
+                    iListResponse.responseRecommendList(recommendBean);
+                }
+
+            }
+        });
+
+    }
+
+    /**
+     * 获取分类列表
+     */
+    public void requestCategoryList() {
+        String finalUrl = NetWorkUrLConstants.CATEGORYLIST_URL;
+        RequestNet.baseGetRequest(finalUrl, new IHttpCallback() {
+            CategoryBean categoryBean = new CategoryBean();
+
+            @Override
+            public void onFailure(int errorCode, String errorMessage) {
+                categoryBean.setSuccess(false);
+                iListResponse.responseCategoryList(categoryBean);
+            }
+
+            @Override
+            public void onResponse(String data, String finalUrl) throws IOException {
+                try {
+                    JSONArray jsonArray = new JSONArray(data);
+                    categoryBean.setSuccess(true);
+                    List<Category> categoryList = new ArrayList<>();
+                    for(int i = 0;i<jsonArray.length();i++) {
+                        JSONObject jsonObject = jsonArray.getJSONObject(i);
+                        Category category = new Category();
+                        category.setId(jsonObject.optInt("id"));
+                        category.setName(jsonObject.optString("name"));
+                        category.setCoverUrl(jsonObject.optString("cover_url"));
+                        String tags = jsonObject.optString("tags");
+                        Gson gson = new Gson();
+                        List<Tag> list = gson.fromJson(tags, new TypeToken<List<Tag>>() {
+                        }.getType());
+                        category.setTagList(list);
+                        categoryList.add(category);
+                    }
+                    categoryBean.setCategoryList(categoryList);
+//                    for(int i = 0;i<categoryList.size();i++) {
+//                        Log.e("zhangzimo",""+categoryList.get(i).getTagList().size());
+//                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    categoryBean.setSuccess(false);
+                    iListResponse.responseCategoryList(categoryBean);
+                }
+
+            }
+        });
+
+    }
+  /*  public void requestCategoryList() {
+        Log.e(TAG, "Request>>>requestCategoryList");
+        CategoryBean categoryBean = new CategoryBean();
+        categoryBean.setSuccess(true);
+        List<Category> categoryList = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            Category category = new Category();
+            category.setCategory_id(categoryId[i]);
+            category.setCategory_name(categoryName[i]);
+            categoryList.add(category);
+        }
+        categoryBean.setCategoryList(categoryList);
+        iListResponse.responseCategoryList(categoryBean);
+
+
+    }*/
+
+    /**
+     * 获取专辑列表
+     */
+    public void getAlbumList(int category_id) {
+
+    }
+}

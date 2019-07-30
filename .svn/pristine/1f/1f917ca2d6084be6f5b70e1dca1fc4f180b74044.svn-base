@@ -1,0 +1,48 @@
+package com.eryanet.m85music;
+
+import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+
+import com.eryanet.m85musicsdk.sdk.M85MusicSDK;
+
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+    private M85MusicSDK m85MusicSDK;
+    private Button btnRecommend;
+    private Button btnCategory;
+    private Button btnTrack;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        m85MusicSDK = M85MusicSDK.getInstance(this);
+        initView();
+
+    }
+    private void initView() {
+        btnRecommend = (Button)findViewById(R.id.btn_recommend);
+        btnRecommend.setOnClickListener(this);
+        btnCategory = (Button)findViewById(R.id.btn_category);
+        btnCategory.setOnClickListener(this);
+        btnTrack = (Button)findViewById(R.id.btn_track);
+        btnTrack.setOnClickListener(this);
+    }
+
+    @Override
+    public void onClick(View view) {
+        switch (view.getId()){
+            case R.id.btn_recommend:
+                m85MusicSDK.requestRecommendList();
+                break;
+            case R.id.btn_category:
+                m85MusicSDK.requestCategoryList();
+                break;
+            case R.id.btn_track:
+                m85MusicSDK.requestTagDetail(1,1,20);
+                break;
+        }
+
+    }
+}

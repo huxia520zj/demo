@@ -1,0 +1,523 @@
+package com.eryanet.m85musicsdk.utils;
+
+import android.content.Context;
+import android.text.TextUtils;
+import android.util.Log;
+
+import com.eryanet.m85musicsdk.bean.CategoryBean;
+import com.eryanet.m85musicsdk.bean.Category;
+import com.eryanet.m85musicsdk.bean.Favor;
+import com.eryanet.m85musicsdk.bean.FavorBean;
+import com.eryanet.m85musicsdk.bean.FavorResult;
+import com.eryanet.m85musicsdk.bean.Recommend;
+import com.eryanet.m85musicsdk.bean.RecommendBean;
+import com.eryanet.m85musicsdk.bean.Tag;
+import com.eryanet.m85musicsdk.bean.Track;
+import com.eryanet.m85musicsdk.bean.TrackBean;
+import com.eryanet.m85musicsdk.constants.CommonConstants;
+import com.eryanet.m85musicsdk.constants.NetWorkUrLConstants;
+import com.eryanet.m85musicsdk.inter.IHttpCallback;
+import com.eryanet.m85musicsdk.inter.IListResponse;
+import com.eryanet.m85musicsdk.tools.RequestNet;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Created by zhangjiao on 2018/7/25.
+ */
+
+public class RequestUtil {
+    private static final String TAG = "zhangjiao";
+    private IListResponse iListResponse;
+    private String string;
+    private Context context;
+    private List<Favor> mFavorList = new ArrayList<>();
+    int favor_id = 0;
+
+
+    public RequestUtil(Context context) {
+        this.context = context;
+        loginVIN();
+        try {
+            CommonConstants.KEY = AesUtil.generateDesKey(256);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void setiListResponse(IListResponse iListResponse) {
+        this.iListResponse = iListResponse;
+    }
+    /**
+     * vin注册
+     */
+    /**
+     * VIN登陆
+     */
+    public void loginVIN() {
+        RequestNet.register(new IHttpCallback() {
+            @Override
+            public void onFailure(int errorCode, String errorMessage) {
+                loginVIN();
+            }
+
+            @Override
+            public void onResponse(String data, String finalUrl) throws IOException {
+                try {
+                    JSONObject object = new JSONObject(data);
+                    CommonConstants.USER_ID = object.getString("userID");
+                    CommonConstants.TOKEN = object.getString("token");
+                    Log.e(TAG, "USER_ID " + CommonConstants.USER_ID);
+                    Log.e(TAG, "TOKEN " + CommonConstants.TOKEN);
+                    requestFavorList();
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        });
+
+    }
+
+    /**
+     * 刷新token
+     */
+    public void updateToken() {
+        RequestNet.updateToken();
+    }
+
+    /**
+     * 获取推荐专辑列表
+     */
+    public void requestRecommendList() {
+        String finalUrl = NetWorkUrLConstants.RECOMMENDLIST_URL;
+        RequestNet.baseGetRequest(finalUrl, new IHttpCallback() {
+            RecommendBean recommendBean = new RecommendBean();
+
+            @Override
+            public void onFailure(int errorCode, String errorMessage) {
+                recommendBean.setSuccess(false);
+                iListResponse.responseRecommendList(recommendBean);
+            }
+
+            @Override
+            public void onResponse(String data, String finalUrl) throws IOException {
+                try {
+                    Gson gson = new Gson();
+                    List<Recommend> list = gson.fromJson(data, new TypeToken<List<Recommend>>() {
+                    }.getType());
+                    if (list != null && list.size() > 0) {
+                        recommendBean.setSuccess(true);
+                        recommendBean.setRecommendList(list);
+                        iListResponse.responseRecommendList(recommendBean);
+                    } else {
+                        recommendBean.setSuccess(false);
+                        iListResponse.responseRecommendList(recommendBean);
+                    }
+
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    recommendBean.setSuccess(false);
+                    iListResponse.responseRecommendList(recommendBean);
+                }
+
+            }
+        });
+
+    }
+
+    /**
+     * 获取分类列表
+     */
+    public void requestCategoryList() {
+        String finalUrl = NetWorkUrLConstants.CATEGORYLIST_URL;
+        RequestNet.baseGetRequest(finalUrl, new IHttpCallback() {
+            CategoryBean categoryBean = new CategoryBean();
+
+            @Override
+            public void onFailure(int errorCode, String errorMessage) {
+                categoryBean.setSuccess(false);
+                iListResponse.responseCategoryList(categoryBean);
+            }
+
+            @Override
+            public void onResponse(String data, String finalUrl) throws IOException {
+                try {
+                    JSONArray jsonArray = new JSONArray(data);
+
+                    List<Category> categoryList = new ArrayList<>();
+                    if (categoryList != null && categoryList.size() > 0) {
+                        categoryBean.setSuccess(true);
+                        for (int i = 0; i < jsonArray.length(); i++) {
+                            JSONObject jsonObject = jsonArray.getJSONObject(i);
+                            Category category = new Category();
+                            category.setId(jsonObject.optInt("id"));
+                            category.setName(jsonObject.optString("name"));
+                            category.setCoverUrl(jsonObject.optString("cover_url"));
+                            String tags = jsonObject.optString("tags");
+                            Gson gson = new Gson();
+                            List<Tag> list = gson.fromJson(tags, new TypeToken<List<Tag>>() {
+                            }.getType());
+                            category.setTagList(list);
+                            categoryList.add(category);
+                        }
+                        categoryBean.setCategoryList(categoryList);
+                        iListResponse.responseCategoryList(categoryBean);
+                    } else {
+                        categoryBean.setSuccess(false);
+                        iListResponse.responseCategoryList(categoryBean);
+                    }
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    categoryBean.setSuccess(false);
+                    iListResponse.responseCategoryList(categoryBean);
+                }
+
+            }
+        });
+
+    }
+
+    /**
+     * 获取标签下歌曲列表
+     */
+    public void requestTagDetail(int tagID, int offset, final int limit) {
+        String finalUrl = NetWorkUrLConstants.TRACKLIST_TAG_URL + "?tagID=" + tagID + "&sort=asc" + "&offset=" + offset + "&limit=" + limit;
+        RequestNet.baseGetRequest(finalUrl, new IHttpCallback() {
+            TrackBean trackBean = new TrackBean();
+
+            @Override
+            public void onFailure(int errorCode, String errorMessage) {
+                trackBean.setSuccess(false);
+                trackBean.setType("tag");
+                iListResponse.responseTrackList(trackBean);
+            }
+
+            @Override
+            public void onResponse(String data, String finalUrl) throws IOException {
+                try {
+
+                    JSONObject jsonObject = new JSONObject(data);
+                    trackBean.setTotal(jsonObject.optInt("total"));
+                    trackBean.setOffset(jsonObject.optInt("offset"));
+                    trackBean.setLimit(jsonObject.optInt("limit"));
+                    trackBean.setSort(jsonObject.optString("sort"));
+                    String items = jsonObject.optString("items");
+                    Gson gson = new Gson();
+                    List<Track> list = gson.fromJson(items, new TypeToken<List<Track>>() {
+                    }.getType());
+                    if (list != null && list.size() > 0) {
+                        for (int i = 0; i < list.size(); i++) {
+                            if (isCollected(list.get(i))) {
+                                list.get(i).setCollected(true);
+                                list.get(i).setFavor_id(favor_id);
+
+                            }else {
+                                list.get(i).setCollected(false);
+                                list.get(i).setFavor_id(0);
+                            }
+                            String url = list.get(i).getPlay_url();
+                            list.get(i).setPlay_url(AesUtil.encrypt(CommonConstants.KEY,url));
+                            Log.e("zhangzimo",i+">>>>"+list.get(i).getPlay_url());
+                        }
+                        trackBean.setSuccess(true);
+                        trackBean.setType("tag");
+                        trackBean.setTrackList(list);
+                        iListResponse.responseTrackList(trackBean);
+                    } else {
+                        trackBean.setSuccess(false);
+                        trackBean.setType("tag");
+                        iListResponse.responseTrackList(trackBean);
+                    }
+
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    trackBean.setSuccess(false);
+                    trackBean.setType("tag");
+                    iListResponse.responseTrackList(trackBean);
+
+                }
+
+            }
+        });
+    }
+
+
+    /**
+     * 获取专辑下歌曲列表
+     */
+    public void requestTrackList(int albumID, int offset, final int limit) {
+        String finalUrl = NetWorkUrLConstants.TRACKLIST_ALBUM_URL + "?albumID=" + albumID + "&sort=asc" + "&offset=" + offset + "&limit=" + limit;
+        RequestNet.baseGetRequest(finalUrl, new IHttpCallback() {
+            TrackBean trackBean = new TrackBean();
+
+            @Override
+            public void onFailure(int errorCode, String errorMessage) {
+                trackBean.setSuccess(false);
+                trackBean.setType("album");
+                iListResponse.responseTrackList(trackBean);
+            }
+
+            @Override
+            public void onResponse(String data, String finalUrl) throws IOException {
+                try {
+
+                    JSONObject jsonObject = new JSONObject(data);
+                    trackBean.setTotal(jsonObject.optInt("total"));
+                    trackBean.setOffset(jsonObject.optInt("offset"));
+                    trackBean.setLimit(jsonObject.optInt("limit"));
+                    trackBean.setSort(jsonObject.optString("sort"));
+                    String items = jsonObject.optString("items");
+                    Gson gson = new Gson();
+                    List<Track> list = gson.fromJson(items, new TypeToken<List<Track>>() {
+                    }.getType());
+
+                    if (list != null && list.size() > 0) {
+                        for (int i = 0; i < list.size(); i++) {
+                            if (isCollected(list.get(i))) {
+                                list.get(i).setCollected(true);
+                                list.get(i).setFavor_id(favor_id);
+
+                            }else {
+                                list.get(i).setCollected(false);
+                                list.get(i).setFavor_id(0);
+                            }
+                            String url = list.get(i).getPlay_url();
+                            list.get(i).setPlay_url(AesUtil.encrypt(CommonConstants.KEY,url));
+                            Log.e("zhangzimo",i+">>>>"+list.get(i).getPlay_url());
+
+                        }
+                        trackBean.setSuccess(true);
+                        trackBean.setType("album");
+                        trackBean.setTrackList(list);
+                        iListResponse.responseTrackList(trackBean);
+                    } else {
+                        trackBean.setSuccess(false);
+                        trackBean.setType("album");
+                        iListResponse.responseTrackList(trackBean);
+                    }
+
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    trackBean.setSuccess(false);
+                    trackBean.setType("album");
+                    iListResponse.responseTrackList(trackBean);
+                }
+
+            }
+        });
+    }
+
+    /**
+     * 曲目搜索
+     */
+    public void requestSearchTrackList(String keywords, int offset, final int limit) {
+        String finalUrl = NetWorkUrLConstants.SEARCH_TRACK_URL + "?keywords=" + keywords + "&categoryID=2" + "&sort=hottest" + "&offset=" + offset + "&limit=" + limit;
+        RequestNet.baseGetRequest(finalUrl, new IHttpCallback() {
+            TrackBean trackBean = new TrackBean();
+
+            @Override
+            public void onFailure(int errorCode, String errorMessage) {
+                trackBean.setSuccess(false);
+                trackBean.setType("search");
+                iListResponse.responseTrackList(trackBean);
+            }
+
+            @Override
+            public void onResponse(String data, String finalUrl) throws IOException {
+                try {
+
+                    JSONObject jsonObject = new JSONObject(data);
+                    trackBean.setTotal(jsonObject.optInt("total"));
+                    trackBean.setOffset(jsonObject.optInt("offset"));
+                    trackBean.setLimit(jsonObject.optInt("limit"));
+                    trackBean.setSort(jsonObject.optString("sort"));
+                    String items = jsonObject.optString("items");
+                    Gson gson = new Gson();
+                    List<Track> list = gson.fromJson(items, new TypeToken<List<Track>>() {
+                    }.getType());
+                    if (list != null && list.size() > 0) {
+                        for (int i = 0; i < list.size(); i++) {
+                            if (isCollected(list.get(i))) {
+                                list.get(i).setCollected(true);
+                                list.get(i).setFavor_id(favor_id);
+
+                            }else {
+                                list.get(i).setCollected(false);
+                                list.get(i).setFavor_id(0);
+                            }
+                            String url = list.get(i).getPlay_url();
+                            list.get(i).setPlay_url(AesUtil.encrypt(CommonConstants.KEY,url));
+                            Log.e("zhangzimo",i+">>>>"+list.get(i).getPlay_url());
+                        }
+                        trackBean.setSuccess(true);
+                        trackBean.setType("search");
+                        trackBean.setTrackList(list);
+                        iListResponse.responseTrackList(trackBean);
+
+                    } else {
+                        trackBean.setSuccess(false);
+                        trackBean.setType("search");
+                        iListResponse.responseTrackList(trackBean);
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    trackBean.setSuccess(false);
+                    trackBean.setType("search");
+                    iListResponse.responseTrackList(trackBean);
+                }
+
+            }
+        });
+
+    }
+
+    /**
+     * 添加收藏
+     */
+    public void addFavor(Track track) {
+        Gson gson = new Gson();
+        String content = gson.toJson(track);
+        String finalUrl = NetWorkUrLConstants.ADD_FAVOR_URL;
+        RequestNet.basePostRequest(finalUrl, 0, content, new IHttpCallback() {
+            FavorResult favorResult = new FavorResult();
+
+            @Override
+            public void onFailure(int errorCode, String errorMessage) {
+                favorResult.setSuccess(false);
+                favorResult.setType("add");
+                iListResponse.responseFavorResult(favorResult);
+
+            }
+
+            @Override
+            public void onResponse(String data, String finalUrl) throws IOException {
+
+                try {
+                    JSONObject jsonObject = new JSONObject(data);
+                    Gson gson = new Gson();
+                    Favor favor = new Favor();
+                    favor.setFavor_id(jsonObject.optInt("id"));
+                    String content = jsonObject.optString("content");
+                    Track track = gson.fromJson(content, Track.class);
+                    favor.setTrack(track);
+                    favorResult.setSuccess(true);
+                    favorResult.setType("add");
+                    favorResult.setFavor(favor);
+                    iListResponse.responseFavorResult(favorResult);
+                    requestFavorList();
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    favorResult.setSuccess(false);
+                    favorResult.setType("add");
+                    iListResponse.responseFavorResult(favorResult);
+                }
+
+
+            }
+        });
+
+    }
+
+    /**
+     * 删除收藏
+     */
+    public void deleteFavor(int favorID) {
+        String finalUrl = NetWorkUrLConstants.DELETE_FAVOR_URL;
+        RequestNet.basePostRequest(finalUrl, 1, "" + favorID, new IHttpCallback() {
+            FavorResult favorResult = new FavorResult();
+
+            @Override
+            public void onFailure(int errorCode, String errorMessage) {
+                favorResult.setSuccess(false);
+                favorResult.setType("delete");
+                iListResponse.responseFavorResult(favorResult);
+
+            }
+
+            @Override
+            public void onResponse(String data, String finalUrl) throws IOException {
+                favorResult.setSuccess(true);
+                favorResult.setType("delete");
+                iListResponse.responseFavorResult(favorResult);
+                requestFavorList();
+            }
+        });
+
+    }
+
+    /**
+     * 获取收藏列表
+     */
+    public void requestFavorList() {
+        RequestNet.baseGetRequest(NetWorkUrLConstants.FAVORLIST_URL + "?userID=" + CommonConstants.USER_ID, new IHttpCallback() {
+            FavorBean favorBean = new FavorBean();
+
+            @Override
+            public void onFailure(int errorCode, String errorMessage) {
+                favorBean.setSuccess(false);
+                iListResponse.responseFavorList(favorBean);
+
+            }
+
+            @Override
+            public void onResponse(String data, String finalUrl) throws IOException {
+
+                if (TextUtils.isEmpty(data)) {
+                    favorBean.setSuccess(false);
+                    iListResponse.responseFavorList(favorBean);
+
+                } else {
+                    try {
+                        JSONArray jsonArray = new JSONArray(data);
+                        List<Favor> favorList = new ArrayList<>();
+                        for (int i = 0; i < jsonArray.length(); i++) {
+                            JSONObject jsonObject = jsonArray.optJSONObject(i);
+                            Favor favor = new Favor();
+                            favor.setFavor_id(jsonObject.optInt("id"));
+                            String content = jsonObject.optString("content");
+                            Gson gson = new Gson();
+                            favor.setTrack(gson.fromJson(content, Track.class));
+                            favorList.add(favor);
+                        }
+                        favorBean.setSuccess(true);
+                        favorBean.setFavorList(favorList);
+                        iListResponse.responseFavorList(favorBean);
+                        mFavorList = favorList;
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                        favorBean.setSuccess(false);
+                        iListResponse.responseFavorList(favorBean);
+                    }
+                }
+            }
+        });
+
+    }
+
+    private boolean isCollected(Track track) {
+
+        if (mFavorList != null && mFavorList.size() > 0) {
+            for (int j = 0; j < mFavorList.size(); j++) {
+                if (mFavorList.get(j).getTrack().getId() == track.getId()) {
+                    favor_id = mFavorList.get(j).getFavor_id();
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+}

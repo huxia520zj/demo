@@ -1,0 +1,177 @@
+package com.eryanet.m85musicsdk.sdk;
+
+import android.app.ActivityManager;
+import android.app.Application;
+import android.content.Context;
+import android.util.Log;
+
+import com.eryanet.m85musicsdk.bean.AlbumBean;
+import com.eryanet.m85musicsdk.bean.CategoryBean;
+import com.eryanet.m85musicsdk.bean.FavorBean;
+import com.eryanet.m85musicsdk.bean.FavorResult;
+import com.eryanet.m85musicsdk.bean.RecommendBean;
+import com.eryanet.m85musicsdk.bean.TrackBean;
+import com.eryanet.m85musicsdk.inter.IListResponse;
+import com.eryanet.m85musicsdk.inter.MusicListCallBack;
+import com.eryanet.m85musicsdk.utils.RequestUtil;
+import com.rich.czlylibary.sdk.MiguCzlySDK;
+
+import java.util.List;
+
+public class M85MusicSDK implements IListResponse {
+    private static final String TAG = "zhangjiao";
+    private Context context;
+    private static M85MusicSDK m85MusicSDK;
+    private static final int ADD_FAVOR = 0x01;
+    public static final int DELETE_FAVOR = 0x02;
+    private RequestUtil requestUtil;
+    private MusicListCallBack musicListCallBack;
+
+    public static M85MusicSDK getInstance(Context context) {
+        if (m85MusicSDK == null) {
+            synchronized (M85MusicSDK.class) {
+                if (m85MusicSDK == null) {
+                    m85MusicSDK = new M85MusicSDK(context);
+                }
+            }
+        }
+        return m85MusicSDK;
+    }
+
+    private M85MusicSDK(Context context) {
+        this.context = context;
+        requestUtil = new RequestUtil(context);
+        requestUtil.setiListResponse(this);
+    }
+    public void setMusicListCallBack(MusicListCallBack musicListCallBack) {
+        Log.e(TAG, "M85MusicSDK>>>setMusicListCallBack");
+        this.musicListCallBack = musicListCallBack;
+    }
+
+    private void initMusic(Application application) {
+        String processName = getProcessName(context);
+        Log.e(TAG, "processName = " + processName);
+        if (processName != null) {
+            if (context.getPackageName().equals(processName)) {
+                MiguCzlySDK.getInstance().init(application)
+                        .setSmartDeviceId("f079e83193c1")//设置设备号（必填）
+                        .setUid("111111")//设置用户ID（非必填）
+                        .setKey("0eb5592e029d3621")//设置渠道号（必填）(为加密渠道号)
+                        .setPhoneNum("11111111111");//设置手机号（非必填）
+            }
+        }
+    }
+
+    private String getProcessName(Context context) {
+        ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningAppProcessInfo> runningApps = am.getRunningAppProcesses();
+        if (runningApps == null) {
+            return null;
+        }
+        for (ActivityManager.RunningAppProcessInfo proInfo : runningApps) {
+            if (proInfo.pid == android.os.Process.myPid()) {
+                if (proInfo.processName != null) {
+                    return proInfo.processName;
+                }
+            }
+
+        }
+        return null;
+    }
+
+    /**
+     * 获取推荐列表  服务器接口
+     */
+    public void requestRecommendList() {
+        if(requestUtil != null){
+            requestUtil.requestRecommendList();
+        }
+
+    }
+
+    /**
+     * 获取分类列表  咪咕音乐
+     */
+    public void requestCategoryList() {
+        if(requestUtil != null){
+            requestUtil.requestCategoryList();
+        }
+    }
+    /**
+     * 获取标签列表下的歌曲
+     */
+    public void requestTagDetail(int tagID,int offset,int limit) {
+        if(requestUtil != null) {
+            requestUtil.requestTagDetail(tagID,offset,limit);
+        }
+    }
+
+    /**
+     * 获取专辑列表  咪咕音乐
+     */
+    public void getAlbumList(int category_id) {
+        if(requestUtil != null) {
+            requestUtil.getAlbumList(category_id);
+        }
+    }
+    /**
+     * 获取歌单列表   咪咕音乐
+     */
+    public void getTrackList() {
+
+    }
+    /**
+     * 获取搜索列表  咪咕音乐
+     */
+    public void getSearchList() {
+
+    }
+    /**
+     * 获取收藏列表  服务器接口
+     */
+    public void getFavorList() {
+
+    }
+    /**
+     * 添加收藏   服务器接口
+     */
+    public void addFavor() {
+
+    }
+    /**
+     * 删除收藏   服务器接口
+     */
+    public void deleteFavor() {
+
+    }
+
+    @Override
+    public void responseRecommendList(RecommendBean recommendBean) {
+
+    }
+
+    @Override
+    public void responseCategoryList(CategoryBean categoryBean) {
+
+    }
+
+    @Override
+    public void responseAlbumList(AlbumBean albumBean) {
+
+    }
+
+    @Override
+    public void responseTrackList(TrackBean trackBean) {
+
+    }
+
+    @Override
+    public void responseFavorList(FavorBean favorBean) {
+
+    }
+
+    @Override
+    public void responseFavorResult(FavorResult favorResult) {
+
+    }
+}

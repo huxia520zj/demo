@@ -1,0 +1,18 @@
+package com.eryanet.m85musicsdk.constants;
+
+public class NetWorkUrLConstants {
+    public static final String BASE_URL = "https://cloud.eryanet.com/entertainment";
+//    public static final String BASE_URL = "http://192.168.8.28:9001";
+
+    //VIN登陆
+    public static final String VIN_LOGIN_URL = "https://cloud.eryanet.com/account/user/loginVin";
+
+
+    //token 刷新
+    public static final String TOKEN_BASE_URL = "https://cloud.eryanet.com/account";
+
+
+
+
+
+}

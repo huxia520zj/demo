@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#008577</color>
+    <color name="colorPrimaryDark">#00574B</color>
+    <color name="colorAccent">#D81B60</color>
+
+    <color name="tv_player_progress_bg">#4C000000</color>
+    <color name="tv_player_second_progress_color">#BBBBBB</color>
+    <color name="tv_player_progress_color">#0B7CDC</color>
+</resources>
